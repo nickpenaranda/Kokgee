@@ -7,8 +7,10 @@ import java.util.Stack;
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.BasicGame;
 import org.newdawn.slick.Color;
+import org.newdawn.slick.Font;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
 import org.newdawn.slick.Input;
 import org.newdawn.slick.SlickException;
 import org.newdawn.slick.Sound;
@@ -33,6 +35,7 @@ public class KokgeeGame extends BasicGame {
   private static final int START_LEVEL = 0;
   private static final int BOOST_INTERVAL_INDEX = 9;
   private static final int HALT_PAUSE = 250;
+  private static final String PAUSE_TEXT = "PRESS 'P' TO UNPAUSE";
   
   /*
    * PHYSICS_INTERVALS        Array of times (ms) between drop impulses for each
@@ -92,6 +95,8 @@ public class KokgeeGame extends BasicGame {
    * bEnableBoost         Can boost be activated?                      
    */
   
+  private GameContainer mGameContainer;
+  
   private int mLevel;
   private int mPoints;
   private int mGameTicks;
@@ -102,9 +107,12 @@ public class KokgeeGame extends BasicGame {
   private int mLinesToNextLevel;
   
   private boolean bBoost;
+  private boolean bPause;
   private boolean bEnableBoost;
   private boolean bSounds;
+  private boolean bSoundsBroken;
   private boolean bForcePhysics; // @HACK
+  private boolean bForceMove; // @HACK
 
   /*
    * Sounds
@@ -122,7 +130,7 @@ public class KokgeeGame extends BasicGame {
   /*
    * Rendering colors, see Shape.initColors()
    */
-  private Color[] mColors;
+  private Image[] mIcons;
   
   /*
    * Barebones constructor simply calls super constructor to set process name
@@ -132,31 +140,13 @@ public class KokgeeGame extends BasicGame {
   }
   
   @Override
-  public void init(GameContainer arg0) throws SlickException {
-    mBoard = new int[BOARD_WIDTH][BOARD_HEIGHT];
-    for(int x=0;x<BOARD_WIDTH;++x)
-      for(int y=0;y<BOARD_HEIGHT;++y)
-        mBoard[x][y] = 0;
+  public void init(GameContainer c) throws SlickException {
+    mGameContainer = c;
     
-    mShapes = Shape.initShapes();
-    mColors = Shape.initColors();
-    
-    mGameTicks = 0;
-    mNextPhysicsTick = 0;
-    mNextRowKillTick = 0;
+    mGameContainer.setShowFPS( false );
+    mGameContainer.setTargetFrameRate( 100 );
 
-    mRowsToKill = new Stack<Integer>();
-
-    mLevel = START_LEVEL;
-    mPoints = 0;
-    mLinesCompleted = 0;
-    mLinesToNextLevel = LINES_PER_LEVEL;
-    
-    bEnableBoost = true;
-    bBoost = false;
-    bForcePhysics = false;
-    movement = Movement.NONE;
-    
+    bSoundsBroken = false;
     bSounds = true;
     try {
       mSoundGameover = new Sound("res/you_lose.wav");
@@ -167,9 +157,42 @@ public class KokgeeGame extends BasicGame {
       mSoundClear4 =   new Sound("res/clear_x4.wav");
     } catch(SlickException e) {
       e.printStackTrace();
+      bSoundsBroken = true;
       bSounds = false;
       // @TODO Do the right thing!!!
-    }
+    } 
+
+    mRowsToKill = new Stack<Integer>();
+    mShapes = Shape.initShapes();
+    mIcons = Shape.initIcons();
+
+    doReset();
+  }
+  
+  private void doReset() {
+    mBoard = new int[BOARD_WIDTH][BOARD_HEIGHT];
+    for(int x=0;x<BOARD_WIDTH;++x)
+      for(int y=0;y<BOARD_HEIGHT;++y)
+        mBoard[x][y] = 0;
+    
+    mRowsToKill.clear();
+    
+    mGameTicks = 0;
+    mNextPhysicsTick = 0;
+    mNextRowKillTick = 0;
+
+    mLevel = START_LEVEL;
+    mPoints = 0;
+    mLinesCompleted = 0;
+    mLinesToNextLevel = LINES_PER_LEVEL;
+    
+    bEnableBoost = true;
+    bBoost = false;
+    bForcePhysics = false;
+    bForceMove = false;
+    movement = Movement.NONE;
+    
+    bPause = false;
     
     genRandom();
     spawnNext();
@@ -177,6 +200,13 @@ public class KokgeeGame extends BasicGame {
 
   @Override
   public void render(GameContainer c, Graphics g) throws SlickException {
+    Font f = g.getFont();
+    int tWidth = f.getWidth( PAUSE_TEXT );
+    if(bPause) {
+      g.drawString(PAUSE_TEXT, c.getWidth() / 2 - tWidth / 2, c.getHeight() / 2 );
+      return;
+    }
+    
     /*
      * Calculate bottom left corner of board
      */
@@ -186,7 +216,7 @@ public class KokgeeGame extends BasicGame {
     int prex = (c.getWidth() / 2) + (PIECE_SIZE * BOARD_WIDTH / 2) + PIECE_SIZE;
     int prey = BOARD_PADDING_V + (PIECE_SIZE * 4) + PIECE_SIZE;
     /*
-     * Render text information
+     * Render text information (DEV) @TODO
      */
     g.setColor(Color.cyan);
     g.drawString("Level " + mLevel, 16, 8);
@@ -207,10 +237,11 @@ public class KokgeeGame extends BasicGame {
     for(int x=0;x<BOARD_WIDTH;++x)
       for(int y=0;y<BOARD_HEIGHT;++y)
         if(mBoard[x][y] != 0) {
-          g.setColor(mColors[mBoard[x][y]]);
-          g.fillRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
-          g.setColor(Color.white);
-          g.drawRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+//          g.setColor(mColors[mBoard[x][y]]);
+//          g.fillRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+//          g.setColor(Color.white);
+//          g.drawRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+            g.drawImage( mIcons[mBoard[x][y]], bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE));
         }
     
     /*
@@ -221,10 +252,11 @@ public class KokgeeGame extends BasicGame {
     for(int k : mNextShape.getParts(0)) {
       int px = (k - 1) % 4;
       int py = (k - 1) / 4;
-      g.setColor(mColors[mNextShape.getColor()]);
-      g.fillRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
-      g.setColor(Color.white);
-      g.drawRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+      g.drawImage( mIcons[mNextShape.getColor()], prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE));
+//      g.setColor(mIcons[mNextShape.getColor()]);
+//      g.fillRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+//      g.setColor(Color.white);
+//      g.drawRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
     }
     
     /*
@@ -241,11 +273,12 @@ public class KokgeeGame extends BasicGame {
         int py = (k - 1) / 4;
         if(opx + px < 0 || opx + px >= BOARD_WIDTH || opy + py < 0 || opy + py >= BOARD_HEIGHT)
           continue;
-        g.setColor(mColors[mPiece.getColor()]);
-        g.fillRect(ox + (px * PIECE_SIZE), oy - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
-        
-        g.setColor(Color.white);
-        g.drawRect(ox + (px * PIECE_SIZE), oy - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+        g.drawImage( mIcons[mPiece.getColor()], ox + (px * PIECE_SIZE), oy - (py * PIECE_SIZE));
+//        g.setColor(mIcons[mPiece.getColor()]);
+//        g.fillRect(ox + (px * PIECE_SIZE), oy - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+//        
+//        g.setColor(Color.white);
+//        g.drawRect(ox + (px * PIECE_SIZE), oy - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
       }
     } 
   }
@@ -260,6 +293,9 @@ public class KokgeeGame extends BasicGame {
    * @see org.newdawn.slick.BasicGame#update(org.newdawn.slick.GameContainer, int)
    */
   public void update(GameContainer c, int delta) throws SlickException {
+    if(bPause)
+      return;
+    
     mGameTicks += delta;
     
     /*
@@ -283,7 +319,8 @@ public class KokgeeGame extends BasicGame {
       mNextRowKillTick = mGameTicks + ROW_KILL_INTERVAL;
     }
     else { // IFF no rows to be killed, process movement ticks first then physics ticks
-      if(mGameTicks > mNextMovementTick) {
+      if(mGameTicks > mNextMovementTick || bForceMove) {
+        bForceMove = false;
         switch(movement) {
           case LEFT:
             doMoveLeft();
@@ -313,9 +350,11 @@ public class KokgeeGame extends BasicGame {
     switch(key) {
       case Input.KEY_LEFT:
         movement = Movement.LEFT;
+        bForceMove = true;
         break;
       case Input.KEY_RIGHT:
         movement = Movement.RIGHT;
+        bForceMove = true;
         break;
       case Input.KEY_DOWN:
         if(bEnableBoost)
@@ -326,10 +365,12 @@ public class KokgeeGame extends BasicGame {
         doDrop();
         break;
       case Input.KEY_F:
-        doRotateCW();
+        if(!bPause)
+          doRotateCW();
         break;
       case Input.KEY_D:
-        doRotateCCW();
+        if(!bPause)
+          doRotateCCW();
         break;
       case Input.KEY_F1:
         if(mLevel > 0) mLevel--;
@@ -337,8 +378,19 @@ public class KokgeeGame extends BasicGame {
       case Input.KEY_F2:
         if(mLevel < PHYSICS_INTERVALS.length - 1) mLevel++;
         break;
+      case Input.KEY_F4:
+        doReset();
+        break;
       case Input.KEY_ESCAPE:
-        System.exit(-1);
+        if(mGameContainer instanceof AppGameContainer)
+          System.exit(0);
+        break;
+      case Input.KEY_S:
+        if(!bSoundsBroken)
+          bSounds = !bSounds;
+        break;
+      case Input.KEY_P:
+        bPause = !bPause;
         break;
     }
   }
@@ -366,9 +418,6 @@ public class KokgeeGame extends BasicGame {
     try {
       AppGameContainer appGameContainer = new AppGameContainer(new KokgeeGame());
       appGameContainer.setDisplayMode(640, 480, false);
-      appGameContainer.setMinimumLogicUpdateInterval(10);
-      appGameContainer.setTargetFrameRate(100);
-      appGameContainer.setShowFPS(false);
       appGameContainer.start();
     } catch (SlickException e) {
       // TODO Auto-generated catch block
