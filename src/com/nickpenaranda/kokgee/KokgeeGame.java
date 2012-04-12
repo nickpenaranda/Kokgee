@@ -128,9 +128,14 @@ public class KokgeeGame extends BasicGame {
   private Sound mSoundClear4;
   
   /*
-   * Rendering colors, see Shape.initColors()
+   * Image array for each piece
    */
   private Image[] mIcons;
+  
+  /*
+   * Background image
+   */
+  private Image mImgBackground;
   
   /*
    * Barebones constructor simply calls super constructor to set process name
@@ -160,7 +165,13 @@ public class KokgeeGame extends BasicGame {
       bSoundsBroken = true;
       bSounds = false;
       // @TODO Do the right thing!!!
-    } 
+    }
+    
+    try {
+      mImgBackground = new Image("res/bg.png");
+    } catch(SlickException e) {
+      e.printStackTrace();
+    }
 
     mRowsToKill = new Stack<Integer>();
     mShapes = Shape.initShapes();
@@ -201,19 +212,20 @@ public class KokgeeGame extends BasicGame {
   @Override
   public void render(GameContainer c, Graphics g) throws SlickException {
     Font f = g.getFont();
-    int tWidth = f.getWidth( PAUSE_TEXT );
+    g.drawImage(mImgBackground, 0, 0);
     if(bPause) {
+      int tWidth = f.getWidth( PAUSE_TEXT );
       g.drawString(PAUSE_TEXT, c.getWidth() / 2 - tWidth / 2, c.getHeight() / 2 );
       return;
     }
     
     /*
-     * Calculate bottom left corner of board
+     * Calculate bottom left corner of board and of preview
      */
     int bx = (c.getWidth() / 2) - (PIECE_SIZE * BOARD_WIDTH / 2);
     int by = (PIECE_SIZE * BOARD_HEIGHT) + BOARD_PADDING_V;
     
-    int prex = (c.getWidth() / 2) + (PIECE_SIZE * BOARD_WIDTH / 2) + PIECE_SIZE;
+    int prex = (c.getWidth() / 2) + (PIECE_SIZE * BOARD_WIDTH / 2) + PIECE_SIZE + 13;
     int prey = BOARD_PADDING_V + (PIECE_SIZE * 4) + PIECE_SIZE;
     /*
      * Render text information (DEV) @TODO
@@ -221,34 +233,22 @@ public class KokgeeGame extends BasicGame {
     g.setColor(Color.cyan);
     g.drawString("Level " + mLevel, 16, 8);
     g.drawString(mLinesToNextLevel - mLinesCompleted + " lines until next mLevel!", 16, 24);
-    g.drawString("Points: " + mPoints, 16, 40);
-    
-    /*
-     * Render field background with border
-     */
-    g.setColor(Color.darkGray);
-    g.fillRect(bx, by + PIECE_SIZE, PIECE_SIZE * BOARD_WIDTH, -1 * PIECE_SIZE * BOARD_HEIGHT);
-    g.setColor(Color.white);
-    g.drawRect(bx, by + PIECE_SIZE, PIECE_SIZE * BOARD_WIDTH, -1 * PIECE_SIZE * BOARD_HEIGHT);
-    
+
+    g.drawString("" + mPoints, 462 - f.getWidth("" + mPoints) / 2, 162); // @HACK
+    // These coordinates should not be hard coded
+        
     /*
      * Render board contents
      */
     for(int x=0;x<BOARD_WIDTH;++x)
       for(int y=0;y<BOARD_HEIGHT;++y)
         if(mBoard[x][y] != 0) {
-//          g.setColor(mColors[mBoard[x][y]]);
-//          g.fillRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
-//          g.setColor(Color.white);
-//          g.drawRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
             g.drawImage( mIcons[mBoard[x][y]], bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE));
         }
     
     /*
      * Render next piece
      */
-    g.drawString("Next piece", prex, prey - (PIECE_SIZE * 4));
-    
     for(int k : mNextShape.getParts(0)) {
       int px = (k - 1) % 4;
       int py = (k - 1) / 4;
