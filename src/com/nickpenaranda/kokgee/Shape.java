@@ -2,7 +2,8 @@ package com.nickpenaranda.kokgee;
 
 import java.util.ArrayList;
 
-import org.newdawn.slick.Color;
+import org.newdawn.slick.Image;
+import org.newdawn.slick.SlickException;
 
 public class Shape {
   private final ArrayList<Shape.ShapeConfig> mConfigs;
@@ -21,8 +22,23 @@ public class Shape {
     mNumConfigs = mConfigs.size();
   }
   
-  public static Color[] initColors() {
-    return(new Color[] {Color.black,Color.magenta,Color.blue,Color.green,Color.red,Color.cyan,Color.yellow,Color.pink});
+  public static Image[] initIcons() {
+    try {
+      return(new Image[] {
+          null,
+          new Image("res/P1.png"),
+          new Image("res/P2.png"),
+          new Image("res/P3.png"),
+          new Image("res/P4.png"),
+          new Image("res/P5.png"),
+          new Image("res/P6.png"),
+          new Image("res/P7.png")
+      });
+    } catch (SlickException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return(null);
   }
   
   public static ArrayList<Shape> initShapes() {
