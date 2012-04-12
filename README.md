@@ -29,5 +29,20 @@ Kokgee (Pronounced KOH-ghee) is a Tetris clone designed to be flexible and amena
 * Left/Right Arrow      Move left/right
 * Down Arrow            Speeded descent
 * Spacebar              Instant ("Hard") drop
+* D/F                   Rotate piece CCW/CW
+* P                     Pause/unpause
+* S                     Disable sound
 * (DEV) F1/F2           Increase/decrease level
-* Escape                Exit game
+* (DEV) F4              Reset everything
+* Escape                Exit game (does nothing in applet mode)
+
+4. TODO
+-------
+
+* Menus
+* Gameover screen, game end behavior
+
+5. Bugs
+-------------
+
+* Please report strange behavior and crashes (preferably with traceback info) to nick4p@gmail.com
