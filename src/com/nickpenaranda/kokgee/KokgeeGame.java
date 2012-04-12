@@ -70,6 +70,7 @@ public class KokgeeGame extends BasicGame {
   private static ArrayList<Shape> mShapes;
   
   private Piece mPiece;
+  private Shape mNextShape;
   private int mBoard[][];
   
   private Stack<Integer> mRowsToKill;
@@ -167,7 +168,8 @@ public class KokgeeGame extends BasicGame {
       // @TODO Do the right thing!!!
     }
     
-    spawnRandom();
+    genRandom();
+    spawnNext();
   }
 
   @Override
@@ -178,6 +180,8 @@ public class KokgeeGame extends BasicGame {
     int bx = (c.getWidth() / 2) - (PIECE_SIZE * BOARD_WIDTH / 2);
     int by = (PIECE_SIZE * BOARD_HEIGHT) + BOARD_PADDING_V;
     
+    int prex = (c.getWidth() / 2) + (PIECE_SIZE * BOARD_WIDTH / 2) + PIECE_SIZE;
+    int prey = BOARD_PADDING_V + (PIECE_SIZE * 4) + PIECE_SIZE;
     /*
      * Render text information
      */
@@ -205,6 +209,20 @@ public class KokgeeGame extends BasicGame {
           g.setColor(Color.white);
           g.drawRect(bx + (x * PIECE_SIZE), by - (y * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
         }
+    
+    /*
+     * Render next piece
+     */
+    g.drawString("Next piece", prex, prey - (PIECE_SIZE * 4));
+    
+    for(int k : mNextShape.getParts(0)) {
+      int px = (k - 1) % 4;
+      int py = (k - 1) / 4;
+      g.setColor(mColors[mNextShape.getColor()]);
+      g.fillRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+      g.setColor(Color.white);
+      g.drawRect(prex + (px * PIECE_SIZE), prey - (py * PIECE_SIZE), PIECE_SIZE, PIECE_SIZE);
+    }
     
     /*
      * Render active piece
@@ -301,6 +319,9 @@ public class KokgeeGame extends BasicGame {
           bForcePhysics = true;
           bBoost = true;
         break;
+      case Input.KEY_SPACE:
+        doDrop();
+        break;
       case Input.KEY_F:
         doRotateCW();
         break;
@@ -352,15 +373,24 @@ public class KokgeeGame extends BasicGame {
     }  
   }
 
+  
   /*
    * Creates a new piece at the prescribed position and orientation
    */
-  private void spawnRandom() {
-    int numShapes = mShapes.size();
-    int shapeIndex = R.nextInt(numShapes);
-    mPiece = new Piece(mShapes.get(shapeIndex),
+  private void spawnNext() {
+    mPiece = new Piece(mNextShape,
                        0,
                        3,BOARD_HEIGHT - 2); // places position 11 at (6,20)
+    genRandom();
+  }
+  
+  /*
+   * Selects a next piece
+   */
+  private void genRandom() {
+    int numShapes = mShapes.size();
+    int shapeIndex = R.nextInt(numShapes);
+    mNextShape = mShapes.get(shapeIndex);
   }
   
   /*
@@ -472,10 +502,21 @@ public class KokgeeGame extends BasicGame {
    */
   private void doPhysics() {
     if(mPiece == null)
-      spawnRandom();
+      spawnNext();
 
     if(pieceCollides(mPiece.getX(),mPiece.getY() - 1,mPiece.getParts())) haltPiece();
     else mPiece.moveDown();
+  }
+  
+  /*
+   * Drops the piece directly down and sets it
+   */
+  private void doDrop() {
+    if(mPiece != null) {
+      while(!pieceCollides(mPiece.getX(),mPiece.getY() - 1,mPiece.getParts()))
+        mPiece.moveDown();
+      haltPiece();
+    }
   }
   
   /*
@@ -502,9 +543,6 @@ public class KokgeeGame extends BasicGame {
    */
   private void doRotateCW() {
     if(mPiece != null) {
-//      int dLowestRow = mPiece.peekCWLR() - mPiece.getLowestRow();
-//      if(!pieceCollides(mPiece.getX(),mPiece.getY() - dLowestRow,mPiece.peekCW())) 
-//        mPiece.rotateCW();
       if(!pieceCollides(mPiece.getX(),mPiece.getY(),mPiece.peekCW()))
         mPiece.rotateCW();
     }
@@ -512,9 +550,6 @@ public class KokgeeGame extends BasicGame {
 
   private void doRotateCCW() {
     if(mPiece != null) {
-//      int dLowestRow = mPiece.peekCCWLR() - mPiece.getLowestRow();
-//      if(!pieceCollides(mPiece.getX(),mPiece.getY() - dLowestRow,mPiece.peekCCW())) 
-//        mPiece.rotateCCW();
       if(!pieceCollides(mPiece.getX(),mPiece.getY(),mPiece.peekCW()))
         mPiece.rotateCCW();
     }
