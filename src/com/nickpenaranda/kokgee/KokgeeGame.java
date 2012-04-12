@@ -103,7 +103,7 @@ public class KokgeeGame extends BasicGame {
   
   private boolean bBoost;
   private boolean bEnableBoost;
-
+  private boolean bSounds;
   private boolean bForcePhysics; // @HACK
 
   /*
@@ -157,14 +157,17 @@ public class KokgeeGame extends BasicGame {
     bForcePhysics = false;
     movement = Movement.NONE;
     
+    bSounds = true;
     try {
-      mSoundGameover = new Sound("./res/you_lose.wav");
-      mSoundSetPiece = new Sound("./res/block_set.wav");
-      mSoundClear1 =   new Sound("./res/clear_x1.wav");
-      mSoundClear2 =   new Sound("./res/clear_x2.wav");
-      mSoundClear3 =   new Sound("./res/clear_x3.wav");
-      mSoundClear4 =   new Sound("./res/clear_x4.wav");
+      mSoundGameover = new Sound("res/you_lose.wav");
+      mSoundSetPiece = new Sound("res/block_set.wav");
+      mSoundClear1 =   new Sound("res/clear_x1.wav");
+      mSoundClear2 =   new Sound("res/clear_x2.wav");
+      mSoundClear3 =   new Sound("res/clear_x3.wav");
+      mSoundClear4 =   new Sound("res/clear_x4.wav");
     } catch(SlickException e) {
+      e.printStackTrace();
+      bSounds = false;
       // @TODO Do the right thing!!!
     }
     
@@ -401,7 +404,8 @@ public class KokgeeGame extends BasicGame {
     int ox = mPiece.getX();
     int oy = mPiece.getY();
     
-    mSoundSetPiece.play();
+    if(bSounds)
+      mSoundSetPiece.play();
     
     for(int k : mPiece.getParts()) {
       int px = ox + ((k - 1) % 4);
@@ -410,7 +414,8 @@ public class KokgeeGame extends BasicGame {
         mBoard[px][py] = mPiece.getColor();
       else {
         // @ENDGAME
-        mSoundGameover.play();
+        if(bSounds)
+          mSoundGameover.play();
         //System.exit(-1);
       }
         
@@ -454,19 +459,21 @@ public class KokgeeGame extends BasicGame {
         break;
     }
     
-    switch(numComplete) {
-      case 1:
-        mSoundClear1.play();
-        break;
-      case 2:
-        mSoundClear2.play();
-        break;
-      case 3:
-        mSoundClear3.play();
-        break;
-      case 4:
-        mSoundClear4.play();
-        break;
+    if(bSounds) {
+      switch(numComplete) {
+        case 1:
+          mSoundClear1.play();
+          break;
+        case 2:
+          mSoundClear2.play();
+          break;
+        case 3:
+          mSoundClear3.play();
+          break;
+        case 4:
+          mSoundClear4.play();
+          break;
+      }
     }
   }
 
